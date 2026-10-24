@@ -3,6 +3,8 @@ import AppLogo from '@/components/AppLogo.vue';
 import CopyButton from '@/components/CopyButton.vue';
 import LiveIndicator from '@/components/LiveIndicator.vue';
 import RequestDetail from '@/components/RequestDetail.vue';
+import RequestDiff from '@/components/RequestDiff.vue';
+import RequestFilters from '@/components/RequestFilters.vue';
 import RequestList from '@/components/RequestList.vue';
 import ResponseSettingsPanel from '@/components/ResponseSettingsPanel.vue';
 import WaitingForRequests from '@/components/WaitingForRequests.vue';
@@ -19,15 +21,22 @@ const LIST_LIMIT = 100;
 
 const props = defineProps<{
     bin: Bin;
+    filters: { q: string; method: string | null };
     requests: CapturedRequestSummary[];
     total: number;
+    /** Number of requests matching the filters, or null when not filtering. */
+    matches: number | null;
     selected: CapturedRequest | null;
+    compare: CapturedRequest | null;
 }>();
 
 const now = useNow(30_000);
 const expiresIn = computed(() => timeAgo(props.bin.expires_at, now.value));
 const connection = useConnectionStatus();
 const editingResponse = ref(false);
+const pickingCompare = ref(false);
+
+const isFiltering = computed(() => props.matches !== null);
 
 const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
     binId: props.bin.id,
@@ -35,6 +44,7 @@ const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
     initialTotal: () => props.total,
     limit: LIST_LIMIT,
     maxTotal: props.bin.max_requests,
+    isFiltering: () => isFiltering.value,
     // Open the first request automatically, but never pull the user away from one they're reading.
     onCaptured: (request) => {
         if (!props.selected) {
@@ -43,16 +53,50 @@ const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
     },
 });
 
+type Params = { q: string | null; method: string | null; r: string | null; c: string | null };
+
+/**
+ * Navigate within the dashboard, keeping filters, selection and comparison in
+ * the URL so the current view survives a refresh and can be shared.
+ */
+function visit(changes: Partial<Params>, only: string[]) {
+    const params: Params = {
+        q: props.filters.q || null,
+        method: props.filters.method,
+        r: props.selected?.id ?? null,
+        c: props.compare?.id ?? null,
+        ...changes,
+    };
+
+    const query = Object.fromEntries(Object.entries(params).filter(([, value]) => value));
+
+    router.get(`/bins/${props.bin.id}`, query, { only, preserveState: true, preserveScroll: true, replace: true });
+}
+
 function select(id: string) {
-    router.get(
-        `/bins/${props.bin.id}`,
-        { r: id },
-        { only: ['selected'], preserveState: true, preserveScroll: true, replace: true },
-    );
+    if (pickingCompare.value) {
+        pickingCompare.value = false;
+
+        if (id !== props.selected?.id) {
+            visit({ c: id }, ['compare']);
+        }
+
+        return;
+    }
+
+    visit({ r: id, c: null }, ['selected', 'compare']);
+}
+
+function filter({ q, method }: { q: string; method: string | null }) {
+    visit({ q: q || null, method }, ['filters', 'requests', 'matches']);
+}
+
+function swapCompared() {
+    visit({ r: props.compare?.id ?? null, c: props.selected?.id ?? null }, ['selected', 'compare']);
 }
 
 function refresh() {
-    router.reload({ only: ['requests', 'total', 'selected'] });
+    router.reload({ only: ['requests', 'total', 'matches', 'selected', 'compare'] });
 }
 
 function clearAll() {
@@ -118,22 +162,41 @@ function clearAll() {
 
         <ResponseSettingsPanel v-if="editingResponse" :bin="bin" @close="editingResponse = false" />
 
-        <WaitingForRequests v-if="liveRequests.length === 0" :url="bin.url" />
+        <WaitingForRequests v-if="liveTotal === 0" :url="bin.url" />
 
         <div v-else class="flex min-h-0 flex-1 flex-col md:flex-row">
-            <aside class="max-h-80 shrink-0 overflow-y-auto border-b border-zinc-800 md:max-h-none md:w-96 md:border-r md:border-b-0">
-                <p class="sticky top-0 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
-                    {{ liveTotal }} {{ liveTotal === 1 ? 'request' : 'requests' }}
-                    <span v-if="liveTotal > liveRequests.length">· showing latest {{ liveRequests.length }}</span>
-                    <span v-if="liveTotal >= bin.max_requests" :title="`Bins keep their ${bin.max_requests} most recent requests`">
-                        · oldest discarded
-                    </span>
-                </p>
-                <RequestList :requests="liveRequests" :selected-id="selected?.id ?? null" :fresh-ids="freshIds" @select="select" />
+            <aside class="flex max-h-96 shrink-0 flex-col border-b border-zinc-800 md:max-h-none md:w-96 md:border-r md:border-b-0">
+                <RequestFilters :q="filters.q" :method="filters.method" @change="filter" />
+
+                <div v-if="pickingCompare" class="flex items-center justify-between gap-2 border-b border-brand-500/30 bg-brand-500/10 px-4 py-2 text-xs text-brand-200">
+                    Pick a request to compare with A
+                    <button type="button" class="text-brand-300 underline-offset-2 hover:underline" @click="pickingCompare = false">Cancel</button>
+                </div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto">
+                    <p class="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
+                        <template v-if="isFiltering">{{ matches }} of {{ liveTotal }} {{ liveTotal === 1 ? 'request' : 'requests' }} match</template>
+                        <template v-else>{{ liveTotal }} {{ liveTotal === 1 ? 'request' : 'requests' }}</template>
+                        <span v-if="(matches ?? liveTotal) > liveRequests.length">· showing latest {{ liveRequests.length }}</span>
+                        <span v-if="liveTotal >= bin.max_requests" :title="`Bins keep their ${bin.max_requests} most recent requests`">
+                            · oldest discarded
+                        </span>
+                    </p>
+                    <p v-if="liveRequests.length === 0" class="px-4 py-10 text-center text-xs text-zinc-500">No requests match your search.</p>
+                    <RequestList
+                        v-else
+                        :requests="liveRequests"
+                        :selected-id="selected?.id ?? null"
+                        :compare-id="compare?.id ?? null"
+                        :fresh-ids="freshIds"
+                        @select="select"
+                    />
+                </div>
             </aside>
 
             <main class="min-w-0 flex-1 overflow-y-auto p-6">
-                <RequestDetail v-if="selected" :request="selected" :bin-url="bin.url" />
+                <RequestDiff v-if="selected && compare" :left="selected" :right="compare" @swap="swapCompared" @close="visit({ c: null }, ['compare'])" />
+                <RequestDetail v-else-if="selected" :request="selected" :bin-url="bin.url" @compare="pickingCompare = true" />
                 <p v-else class="py-16 text-center text-sm text-zinc-500">Select a request to inspect it.</p>
             </main>
         </div>

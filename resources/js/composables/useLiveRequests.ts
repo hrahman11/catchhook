@@ -10,6 +10,8 @@ interface Options {
     limit: number;
     /** The server keeps at most this many requests per bin. */
     maxTotal: number;
+    /** While filtering, only the server knows whether a new request matches. */
+    isFiltering: () => boolean;
     onCaptured?: (request: CapturedRequestSummary) => void;
 }
 
@@ -20,7 +22,7 @@ interface Options {
  * connection drops, the list is re-synced from the server once it comes back,
  * so requests that arrived while offline are never missed.
  */
-export function useLiveRequests({ binId, initial, initialTotal, limit, maxTotal, onCaptured }: Options): {
+export function useLiveRequests({ binId, initial, initialTotal, limit, maxTotal, isFiltering, onCaptured }: Options): {
     requests: Ref<CapturedRequestSummary[]>;
     total: Ref<number>;
     freshIds: Ref<Set<string>>;
@@ -33,8 +35,18 @@ export function useLiveRequests({ binId, initial, initialTotal, limit, maxTotal,
     watch(initial, (value) => (requests.value = [...value]));
     watch(initialTotal, (value) => (total.value = value));
 
+    let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+
     useEchoPublic<RequestCapturedEvent>(`bins.${binId}`, '.request.captured', ({ request }) => {
         if (requests.value.some((existing) => existing.id === request.id)) {
+            return;
+        }
+
+        // The summary can't tell whether headers or body match the search, so
+        // let the server re-run it, batching bursts into a single reload.
+        if (isFiltering()) {
+            clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(() => router.reload({ only: ['requests', 'total', 'matches'] }), 500);
             return;
         }
 
@@ -49,7 +61,7 @@ export function useLiveRequests({ binId, initial, initialTotal, limit, maxTotal,
 
     watch(status, (current) => {
         if (current === 'connected' && !wasConnected) {
-            router.reload({ only: ['requests', 'total'] });
+            router.reload({ only: ['requests', 'total', 'matches'] });
         }
 
         wasConnected = current === 'connected';

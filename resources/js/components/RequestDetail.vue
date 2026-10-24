@@ -11,6 +11,7 @@ import type { CapturedRequest } from '@/types';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ request: CapturedRequest; binUrl: string }>();
+const emit = defineEmits<{ compare: [] }>();
 
 const replaying = ref(false);
 
@@ -44,6 +45,14 @@ const headers = computed(() => headerRows(props.request.headers));
             <MethodBadge :method="request.method" />
             <code class="min-w-0 flex-1 truncate font-mono text-sm text-zinc-100" :title="fullUrl">{{ fullUrl }}</code>
             <CopyButton :value="fullUrl" label="Copy URL" />
+            <button
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-700 hover:text-zinc-100"
+                title="Compare this request with another one"
+                @click="emit('compare')"
+            >
+                Compare
+            </button>
             <button
                 type="button"
                 class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-400"

@@ -79,6 +79,46 @@ class CapturedRequest extends Model
     }
 
     /**
+     * Case-insensitive search across the path, query string, headers and text bodies.
+     *
+     * A substring scan is fine here: it only ever covers one bin, and bins are
+     * capped at a few hundred requests, so no full-text index is needed.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function search(Builder $query, ?string $term): void
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return;
+        }
+
+        $like = '%'.addcslashes(mb_strtolower($term), '\\%_').'%';
+
+        $query->where(fn (Builder $query) => $query
+            ->whereRaw('LOWER(path) LIKE ?', [$like])
+            ->orWhereRaw('LOWER(query_string) LIKE ?', [$like])
+            ->orWhereRaw('LOWER(CAST(headers AS TEXT)) LIKE ?', [$like])
+            // Binary bodies are stored base64-encoded, so only text bodies are searchable.
+            ->orWhere(fn (Builder $query) => $query
+                ->where('body_encoding', self::ENCODING_UTF8)
+                ->whereRaw('LOWER(body) LIKE ?', [$like])));
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function withMethod(Builder $query, ?string $method): void
+    {
+        if ($method) {
+            $query->where('method', strtoupper($method));
+        }
+    }
+
+    /**
      * Store the raw request body, choosing a lossless encoding.
      */
     public function setRawBody(string $body): static
