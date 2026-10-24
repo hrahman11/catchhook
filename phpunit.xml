@@ -26,6 +26,7 @@
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="catchhook_test"/>
         <env name="DB_URL" value=""/>
+        <env name="CATCHHOOK_REPLAY_ALLOW_PRIVATE" value="false" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

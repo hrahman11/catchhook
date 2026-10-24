@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
         ]);
+
+        // Replay payloads must be forwarded exactly as written, so they skip
+        // the default input normalisation (trimming, empty string to null).
+        $isReplay = fn (Request $request) => $request->is('requests/*/replay');
+        $middleware->trimStrings(except: [$isReplay]);
+        $middleware->convertEmptyStringsToNull(except: [$isReplay]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
