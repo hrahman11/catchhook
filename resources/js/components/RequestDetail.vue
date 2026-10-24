@@ -3,12 +3,20 @@ import BodyViewer from '@/components/BodyViewer.vue';
 import CopyButton from '@/components/CopyButton.vue';
 import KeyValueTable from '@/components/KeyValueTable.vue';
 import MethodBadge from '@/components/MethodBadge.vue';
+import ReplayPanel from '@/components/ReplayPanel.vue';
 import { formatBytes, formatDateTime } from '@/lib/format';
 import { headerRows, parseQuery } from '@/lib/http';
 import type { CapturedRequest } from '@/types';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ request: CapturedRequest; binUrl: string }>();
+
+const replaying = ref(false);
+
+watch(
+    () => props.request.id,
+    () => (replaying.value = false),
+);
 
 const fullUrl = computed(() => {
     const path = props.request.path === '/' ? '' : props.request.path;
@@ -35,7 +43,20 @@ const headers = computed(() => headerRows(props.request.headers));
             <MethodBadge :method="request.method" />
             <code class="min-w-0 flex-1 truncate font-mono text-sm text-zinc-100" :title="fullUrl">{{ fullUrl }}</code>
             <CopyButton :value="fullUrl" label="Copy URL" />
+            <button
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-brand-400"
+                @click="replaying = true"
+            >
+                <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Replay
+            </button>
         </header>
+
+        <ReplayPanel v-if="replaying" :key="request.id" :request="request" @close="replaying = false" />
 
         <section>
             <h3 class="mb-2 text-xs font-semibold tracking-wider text-zinc-400 uppercase">Overview</h3>

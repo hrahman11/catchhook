@@ -1,5 +1,21 @@
 export type BodyFormat = 'json' | 'form' | 'xml' | 'text' | 'binary' | 'empty';
 
+export const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const;
+
+/** Connection-level headers the server strips before replaying (mirrors Replayer::DROPPED_HEADERS). */
+export const REPLAY_DROPPED_HEADERS = [
+    'host',
+    'content-length',
+    'connection',
+    'keep-alive',
+    'transfer-encoding',
+    'te',
+    'trailer',
+    'upgrade',
+    'proxy-authorization',
+    'proxy-connection',
+];
+
 export function parseQuery(queryString: string | null): [string, string][] {
     if (!queryString) {
         return [];

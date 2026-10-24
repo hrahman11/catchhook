@@ -22,6 +22,20 @@ export interface RequestCapturedEvent {
     request: CapturedRequestSummary;
 }
 
+export interface ReplayResult {
+    ok: boolean;
+    status: number | null;
+    reason: string | null;
+    headers: Record<string, string[]>;
+    /** Response body; base64-encoded when `is_binary` is true. */
+    body: string | null;
+    is_binary: boolean;
+    size: number;
+    truncated: boolean;
+    duration_ms: number;
+    error: string | null;
+}
+
 export interface CapturedRequest extends CapturedRequestSummary {
     headers: Record<string, string[]>;
     is_binary: boolean;
