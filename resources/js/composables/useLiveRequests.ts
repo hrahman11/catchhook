@@ -8,6 +8,8 @@ interface Options {
     initial: () => CapturedRequestSummary[];
     initialTotal: () => number;
     limit: number;
+    /** The server keeps at most this many requests per bin. */
+    maxTotal: number;
     onCaptured?: (request: CapturedRequestSummary) => void;
 }
 
@@ -18,7 +20,7 @@ interface Options {
  * connection drops, the list is re-synced from the server once it comes back,
  * so requests that arrived while offline are never missed.
  */
-export function useLiveRequests({ binId, initial, initialTotal, limit, onCaptured }: Options): {
+export function useLiveRequests({ binId, initial, initialTotal, limit, maxTotal, onCaptured }: Options): {
     requests: Ref<CapturedRequestSummary[]>;
     total: Ref<number>;
     freshIds: Ref<Set<string>>;
@@ -37,7 +39,7 @@ export function useLiveRequests({ binId, initial, initialTotal, limit, onCapture
         }
 
         requests.value = [request, ...requests.value].slice(0, limit);
-        total.value++;
+        total.value = Math.min(total.value + 1, maxTotal);
         markFresh(request.id);
         onCaptured?.(request);
     });

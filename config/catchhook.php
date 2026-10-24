@@ -16,6 +16,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Capture Limits
+    |--------------------------------------------------------------------------
+    |
+    | Capture URLs are public, so these keep a single bin or client from
+    | exhausting storage or workers. Bins keep only their most recent
+    | requests; older ones are discarded as new requests arrive.
+    |
+    */
+
+    'limits' => [
+        'max_body_kb' => (int) env('CATCHHOOK_MAX_BODY_KB', 512),
+        'max_requests_per_bin' => (int) env('CATCHHOOK_MAX_REQUESTS_PER_BIN', 500),
+        'captures_per_minute_per_bin' => (int) env('CATCHHOOK_CAPTURES_PER_MINUTE_PER_BIN', 120),
+        'captures_per_minute_per_ip' => (int) env('CATCHHOOK_CAPTURES_PER_MINUTE_PER_IP', 300),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Custom Responses
     |--------------------------------------------------------------------------
     |

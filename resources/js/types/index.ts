@@ -3,6 +3,8 @@ export interface Bin {
     name: string | null;
     url: string;
     expired: boolean;
+    /** Older requests are discarded once a bin holds this many. */
+    max_requests: number;
     response: BinResponse | null;
     expires_at: string;
     created_at: string | null;

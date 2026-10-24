@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LimitHookBodySize;
 use App\Http\Middleware\SecureHookResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,8 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::middleware([SecureHookResponse::class, SubstituteBindings::class])
-                ->group(base_path('routes/hooks.php'));
+            // Throttle and size checks run before the bin is loaded, so floods
+            // and oversized bodies are refused without touching the database.
+            Route::middleware([
+                SecureHookResponse::class,
+                'throttle:captures',
+                LimitHookBodySize::class,
+                SubstituteBindings::class,
+            ])->group(base_path('routes/hooks.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

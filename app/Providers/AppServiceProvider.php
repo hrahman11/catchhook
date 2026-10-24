@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Bin;
 use App\Services\Replay\DnsHostResolver;
 use App\Services\Replay\HostResolver;
 use App\Services\Replay\Replayer;
@@ -45,5 +46,16 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('bins', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('replays', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+
+        // Runs before route model binding, so the bin parameter is still the raw ID.
+        RateLimiter::for('captures', function (Request $request) {
+            $bin = $request->route('bin');
+            $binId = $bin instanceof Bin ? $bin->id : (string) $bin;
+
+            return [
+                Limit::perMinute(config('catchhook.limits.captures_per_minute_per_bin'))->by("bin:{$binId}"),
+                Limit::perMinute(config('catchhook.limits.captures_per_minute_per_ip'))->by("ip:{$request->ip()}"),
+            ];
+        });
     }
 }

@@ -34,6 +34,7 @@ const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
     initial: () => props.requests,
     initialTotal: () => props.total,
     limit: LIST_LIMIT,
+    maxTotal: props.bin.max_requests,
     // Open the first request automatically, but never pull the user away from one they're reading.
     onCaptured: (request) => {
         if (!props.selected) {
@@ -124,6 +125,9 @@ function clearAll() {
                 <p class="sticky top-0 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
                     {{ liveTotal }} {{ liveTotal === 1 ? 'request' : 'requests' }}
                     <span v-if="liveTotal > liveRequests.length">· showing latest {{ liveRequests.length }}</span>
+                    <span v-if="liveTotal >= bin.max_requests" :title="`Bins keep their ${bin.max_requests} most recent requests`">
+                        · oldest discarded
+                    </span>
                 </p>
                 <RequestList :requests="liveRequests" :selected-id="selected?.id ?? null" :fresh-ids="freshIds" @select="select" />
             </aside>

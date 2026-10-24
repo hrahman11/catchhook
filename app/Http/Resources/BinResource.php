@@ -21,6 +21,7 @@ class BinResource extends JsonResource
             'name' => $this->name,
             'url' => route('hooks.capture', $this->resource),
             'expired' => $this->isExpired(),
+            'max_requests' => (int) config('catchhook.limits.max_requests_per_bin'),
             'response' => $this->hasCustomResponse() ? [
                 'status' => $this->response_status,
                 'headers' => $this->response_headers ?? [],

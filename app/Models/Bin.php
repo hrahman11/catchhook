@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Database\Factories\BinFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUniqueStringIds;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -24,7 +26,7 @@ use Illuminate\Support\Str;
 class Bin extends Model
 {
     /** @use HasFactory<BinFactory> */
-    use HasFactory, HasUniqueStringIds;
+    use HasFactory, HasUniqueStringIds, MassPrunable;
 
     public const ID_LENGTH = 16;
 
@@ -78,6 +80,28 @@ class Bin extends Model
     public function requests(): HasMany
     {
         return $this->hasMany(CapturedRequest::class);
+    }
+
+    /**
+     * Keep only the most recent requests, deleting everything older.
+     */
+    public function discardRequestsBeyond(int $keep): int
+    {
+        // ULIDs sort by creation time, so everything at or below the first
+        // request past the limit is older than the ones being kept.
+        $cutoff = $this->requests()->newestFirst()->skip($keep)->value('id');
+
+        return $cutoff === null ? 0 : $this->requests()->where('id', '<=', $cutoff)->delete();
+    }
+
+    /**
+     * Expired bins are deleted by `model:prune`; their requests cascade at the database level.
+     *
+     * @return Builder<self>
+     */
+    public function prunable(): Builder
+    {
+        return static::where('expires_at', '<=', now());
     }
 
     public function isExpired(): bool
