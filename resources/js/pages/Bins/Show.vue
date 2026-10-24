@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import AppLogo from '@/components/AppLogo.vue';
 import CopyButton from '@/components/CopyButton.vue';
+import LiveIndicator from '@/components/LiveIndicator.vue';
 import RequestDetail from '@/components/RequestDetail.vue';
 import RequestList from '@/components/RequestList.vue';
 import WaitingForRequests from '@/components/WaitingForRequests.vue';
+import { useLiveRequests } from '@/composables/useLiveRequests';
 import { useNow } from '@/composables/useNow';
 import { timeAgo } from '@/lib/format';
 import type { Bin, CapturedRequest, CapturedRequestSummary } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
+import { useConnectionStatus } from '@laravel/echo-vue';
 import { computed } from 'vue';
+
+/** Must match BinController::LIST_LIMIT. */
+const LIST_LIMIT = 100;
 
 const props = defineProps<{
     bin: Bin;
@@ -19,6 +25,20 @@ const props = defineProps<{
 
 const now = useNow(30_000);
 const expiresIn = computed(() => timeAgo(props.bin.expires_at, now.value));
+const connection = useConnectionStatus();
+
+const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
+    binId: props.bin.id,
+    initial: () => props.requests,
+    initialTotal: () => props.total,
+    limit: LIST_LIMIT,
+    // Open the first request automatically, but never pull the user away from one they're reading.
+    onCaptured: (request) => {
+        if (!props.selected) {
+            select(request.id);
+        }
+    },
+});
 
 function select(id: string) {
     router.get(
@@ -54,13 +74,21 @@ function clearAll() {
 
                 <div class="flex items-center gap-2 text-xs">
                     <span v-if="bin.expired" class="rounded-md bg-rose-500/15 px-2 py-1 text-rose-300">Expired</span>
-                    <span v-else class="text-zinc-500">Expires {{ expiresIn }}</span>
-                    <button type="button" class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:bg-zinc-800" @click="refresh">
+                    <template v-else>
+                        <span class="text-zinc-500">Expires {{ expiresIn }}</span>
+                        <LiveIndicator />
+                    </template>
+                    <button
+                        v-if="connection !== 'connected'"
+                        type="button"
+                        class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:bg-zinc-800"
+                        @click="refresh"
+                    >
                         Refresh
                     </button>
                     <button
                         type="button"
-                        :disabled="total === 0"
+                        :disabled="liveTotal === 0"
                         class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-300"
                         @click="clearAll"
                     >
@@ -70,15 +98,15 @@ function clearAll() {
             </div>
         </header>
 
-        <WaitingForRequests v-if="requests.length === 0" :url="bin.url" />
+        <WaitingForRequests v-if="liveRequests.length === 0" :url="bin.url" />
 
         <div v-else class="flex min-h-0 flex-1 flex-col md:flex-row">
             <aside class="max-h-80 shrink-0 overflow-y-auto border-b border-zinc-800 md:max-h-none md:w-96 md:border-r md:border-b-0">
                 <p class="sticky top-0 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
-                    {{ total }} {{ total === 1 ? 'request' : 'requests' }}
-                    <span v-if="total > requests.length">· showing latest {{ requests.length }}</span>
+                    {{ liveTotal }} {{ liveTotal === 1 ? 'request' : 'requests' }}
+                    <span v-if="liveTotal > liveRequests.length">· showing latest {{ liveRequests.length }}</span>
                 </p>
-                <RequestList :requests="requests" :selected-id="selected?.id ?? null" @select="select" />
+                <RequestList :requests="liveRequests" :selected-id="selected?.id ?? null" :fresh-ids="freshIds" @select="select" />
             </aside>
 
             <main class="min-w-0 flex-1 overflow-y-auto p-6">

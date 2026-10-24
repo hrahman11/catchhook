@@ -18,6 +18,10 @@ export interface CapturedRequestSummary {
     created_at: string;
 }
 
+export interface RequestCapturedEvent {
+    request: CapturedRequestSummary;
+}
+
 export interface CapturedRequest extends CapturedRequestSummary {
     headers: Record<string, string[]>;
     is_binary: boolean;

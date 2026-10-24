@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\RequestCaptured;
 use App\Models\Bin;
 use App\Models\CapturedRequest;
 use Illuminate\Http\Request;
@@ -27,6 +28,8 @@ class CaptureIncomingRequest
         $captured->setRawBody($request->getContent());
 
         $bin->requests()->save($captured);
+
+        RequestCaptured::dispatch($captured);
 
         return $captured;
     }
