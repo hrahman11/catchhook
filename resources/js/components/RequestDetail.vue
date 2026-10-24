@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BodyViewer from '@/components/BodyViewer.vue';
+import CodeSnippets from '@/components/CodeSnippets.vue';
 import CopyButton from '@/components/CopyButton.vue';
 import KeyValueTable from '@/components/KeyValueTable.vue';
 import MethodBadge from '@/components/MethodBadge.vue';
@@ -76,5 +77,7 @@ const headers = computed(() => headerRows(props.request.headers));
         </section>
 
         <BodyViewer :request="request" />
+
+        <CodeSnippets :request="request" :url="fullUrl" />
     </article>
 </template>
