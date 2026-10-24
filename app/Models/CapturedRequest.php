@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Database\Factories\CapturedRequestFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -63,6 +65,17 @@ class CapturedRequest extends Model
     public function bin(): BelongsTo
     {
         return $this->belongsTo(Bin::class);
+    }
+
+    /**
+     * Order by arrival, newest first. ULIDs break ties within the same second.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function newestFirst(Builder $query): void
+    {
+        $query->latest('created_at')->latest('id');
     }
 
     /**

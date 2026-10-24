@@ -1,0 +1,90 @@
+<script setup lang="ts">
+import AppLogo from '@/components/AppLogo.vue';
+import CopyButton from '@/components/CopyButton.vue';
+import RequestDetail from '@/components/RequestDetail.vue';
+import RequestList from '@/components/RequestList.vue';
+import WaitingForRequests from '@/components/WaitingForRequests.vue';
+import { useNow } from '@/composables/useNow';
+import { timeAgo } from '@/lib/format';
+import type { Bin, CapturedRequest, CapturedRequestSummary } from '@/types';
+import { Head, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const props = defineProps<{
+    bin: Bin;
+    requests: CapturedRequestSummary[];
+    total: number;
+    selected: CapturedRequest | null;
+}>();
+
+const now = useNow(30_000);
+const expiresIn = computed(() => timeAgo(props.bin.expires_at, now.value));
+
+function select(id: string) {
+    router.get(
+        `/bins/${props.bin.id}`,
+        { r: id },
+        { only: ['selected'], preserveState: true, preserveScroll: true, replace: true },
+    );
+}
+
+function refresh() {
+    router.reload({ only: ['requests', 'total', 'selected'] });
+}
+
+function clearAll() {
+    if (confirm('Delete every captured request in this bin?')) {
+        router.delete(`/bins/${props.bin.id}/requests`, { preserveScroll: true });
+    }
+}
+</script>
+
+<template>
+    <Head :title="`Bin ${bin.id}`" />
+
+    <div class="flex h-full flex-col">
+        <header class="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+                <AppLogo />
+
+                <div class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 py-1 pr-1 pl-3">
+                    <code class="min-w-0 flex-1 truncate font-mono text-sm text-brand-300">{{ bin.url }}</code>
+                    <CopyButton :value="bin.url" />
+                </div>
+
+                <div class="flex items-center gap-2 text-xs">
+                    <span v-if="bin.expired" class="rounded-md bg-rose-500/15 px-2 py-1 text-rose-300">Expired</span>
+                    <span v-else class="text-zinc-500">Expires {{ expiresIn }}</span>
+                    <button type="button" class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:bg-zinc-800" @click="refresh">
+                        Refresh
+                    </button>
+                    <button
+                        type="button"
+                        :disabled="total === 0"
+                        class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-300"
+                        @click="clearAll"
+                    >
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <WaitingForRequests v-if="requests.length === 0" :url="bin.url" />
+
+        <div v-else class="flex min-h-0 flex-1 flex-col md:flex-row">
+            <aside class="max-h-80 shrink-0 overflow-y-auto border-b border-zinc-800 md:max-h-none md:w-96 md:border-r md:border-b-0">
+                <p class="sticky top-0 border-b border-zinc-800 bg-zinc-950 px-4 py-2 text-xs text-zinc-500">
+                    {{ total }} {{ total === 1 ? 'request' : 'requests' }}
+                    <span v-if="total > requests.length">· showing latest {{ requests.length }}</span>
+                </p>
+                <RequestList :requests="requests" :selected-id="selected?.id ?? null" @select="select" />
+            </aside>
+
+            <main class="min-w-0 flex-1 overflow-y-auto p-6">
+                <RequestDetail v-if="selected" :request="selected" :bin-url="bin.url" />
+                <p v-else class="py-16 text-center text-sm text-zinc-500">Select a request to inspect it.</p>
+            </main>
+        </div>
+    </div>
+</template>
