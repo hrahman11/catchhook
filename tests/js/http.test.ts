@@ -1,4 +1,4 @@
-import { detectFormat, headerRows, hexDump, parseQuery } from '@/lib/http';
+import { detectFormat, formatJson, headerRows, hexDump, parseQuery } from '@/lib/http';
 import { describe, expect, it } from 'vitest';
 
 describe('detectFormat', () => {
@@ -17,6 +17,24 @@ describe('detectFormat', () => {
     it('handles binary and empty bodies first', () => {
         expect(detectFormat('application/json', 'AAEC', true)).toBe('binary');
         expect(detectFormat('application/json', null, false)).toBe('empty');
+    });
+});
+
+describe('formatJson', () => {
+    it('indents nested structures', () => {
+        expect(formatJson('{"a":[1,{"b":null}],"c":{}}')).toBe('{\n  "a": [\n    1,\n    {\n      "b": null\n    }\n  ],\n  "c": {}\n}');
+    });
+
+    it('keeps large integers exactly as written', () => {
+        expect(formatJson('{"id":12345678901234567890}')).toBe('{\n  "id": 12345678901234567890\n}');
+    });
+
+    it('leaves strings untouched, including escapes and structural characters', () => {
+        expect(formatJson('{"s":"a, {b}: [c] \\"q\\" \\\\"}')).toBe('{\n  "s": "a, {b}: [c] \\"q\\" \\\\"\n}');
+    });
+
+    it('returns null for invalid JSON', () => {
+        expect(formatJson('{not json')).toBeNull();
     });
 });
 

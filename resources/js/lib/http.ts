@@ -55,11 +55,75 @@ export function detectFormat(contentType: string | null, body: string | null, is
 }
 
 export function prettyJson(body: string): string {
+    return formatJson(body) ?? body;
+}
+
+/**
+ * Re-indent valid JSON without parsing its values, so every literal is kept
+ * verbatim. A JSON.parse/stringify round-trip would round integers beyond
+ * 2^53, which is common for IDs, and could hide real differences in a diff.
+ */
+export function formatJson(source: string, indentWith = '  '): string | null {
     try {
-        return JSON.stringify(JSON.parse(body), null, 2);
+        JSON.parse(source);
     } catch {
-        return body;
+        return null;
     }
+
+    let out = '';
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    const newline = () => '\n' + indentWith.repeat(depth);
+
+    for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+
+        if (inString) {
+            out += char;
+            if (escaped) escaped = false;
+            else if (char === '\\') escaped = true;
+            else if (char === '"') inString = false;
+            continue;
+        }
+
+        switch (char) {
+            case '"':
+                inString = true;
+                out += char;
+                break;
+            case '{':
+            case '[': {
+                const close = char === '{' ? '}' : ']';
+                let next = i + 1;
+                while (/\s/.test(source[next] ?? '')) next++;
+
+                if (source[next] === close) {
+                    out += char + close;
+                    i = next;
+                } else {
+                    depth++;
+                    out += char + newline();
+                }
+                break;
+            }
+            case '}':
+            case ']':
+                depth--;
+                out += newline() + char;
+                break;
+            case ',':
+                out += ',' + newline();
+                break;
+            case ':':
+                out += ': ';
+                break;
+            default:
+                if (!/\s/.test(char)) out += char;
+        }
+    }
+
+    return out;
 }
 
 /**
