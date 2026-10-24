@@ -4,6 +4,7 @@ import CopyButton from '@/components/CopyButton.vue';
 import LiveIndicator from '@/components/LiveIndicator.vue';
 import RequestDetail from '@/components/RequestDetail.vue';
 import RequestList from '@/components/RequestList.vue';
+import ResponseSettingsPanel from '@/components/ResponseSettingsPanel.vue';
 import WaitingForRequests from '@/components/WaitingForRequests.vue';
 import { useLiveRequests } from '@/composables/useLiveRequests';
 import { useNow } from '@/composables/useNow';
@@ -11,7 +12,7 @@ import { timeAgo } from '@/lib/format';
 import type { Bin, CapturedRequest, CapturedRequestSummary } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { useConnectionStatus } from '@laravel/echo-vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 /** Must match BinController::LIST_LIMIT. */
 const LIST_LIMIT = 100;
@@ -26,6 +27,7 @@ const props = defineProps<{
 const now = useNow(30_000);
 const expiresIn = computed(() => timeAgo(props.bin.expires_at, now.value));
 const connection = useConnectionStatus();
+const editingResponse = ref(false);
 
 const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
     binId: props.bin.id,
@@ -88,6 +90,21 @@ function clearAll() {
                     </button>
                     <button
                         type="button"
+                        :title="bin.response ? 'This bin sends a custom response' : 'This bin sends the default response'"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:bg-zinc-800"
+                        @click="editingResponse = true"
+                    >
+                        Response
+                        <span
+                            :class="bin.response ? 'bg-brand-500/20 text-brand-200' : 'bg-zinc-800 text-zinc-400'"
+                            class="rounded px-1 font-mono text-[10px]"
+                        >
+                            {{ bin.response ? bin.response.status : 'default' }}
+                        </span>
+                        <span v-if="bin.response?.delay_ms" class="font-mono text-[10px] text-zinc-500">+{{ (bin.response.delay_ms / 1000).toFixed(1) }}s</span>
+                    </button>
+                    <button
+                        type="button"
                         :disabled="liveTotal === 0"
                         class="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300 hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-40 disabled:hover:border-zinc-700 disabled:hover:text-zinc-300"
                         @click="clearAll"
@@ -97,6 +114,8 @@ function clearAll() {
                 </div>
             </div>
         </header>
+
+        <ResponseSettingsPanel v-if="editingResponse" :bin="bin" @close="editingResponse = false" />
 
         <WaitingForRequests v-if="liveRequests.length === 0" :url="bin.url" />
 

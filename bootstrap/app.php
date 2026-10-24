@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecureHookResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::middleware(SubstituteBindings::class)
+            Route::middleware([SecureHookResponse::class, SubstituteBindings::class])
                 ->group(base_path('routes/hooks.php'));
         },
     )
@@ -23,11 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
         ]);
 
-        // Replay payloads must be forwarded exactly as written, so they skip
-        // the default input normalisation (trimming, empty string to null).
-        $isReplay = fn (Request $request) => $request->is('requests/*/replay');
-        $middleware->trimStrings(except: [$isReplay]);
-        $middleware->convertEmptyStringsToNull(except: [$isReplay]);
+        // Replay payloads and custom response bodies must be kept exactly as
+        // written, so they skip the default input normalisation (trimming,
+        // empty string to null).
+        $keepsRawInput = fn (Request $request) => $request->is('requests/*/replay', 'bins/*/response');
+        $middleware->trimStrings(except: [$keepsRawInput]);
+        $middleware->convertEmptyStringsToNull(except: [$keepsRawInput]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

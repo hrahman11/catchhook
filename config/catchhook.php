@@ -16,6 +16,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Custom Responses
+    |--------------------------------------------------------------------------
+    |
+    | Bins can return a custom status, headers and body, optionally after an
+    | artificial delay for testing sender timeouts and retries. The delay is
+    | capped because it holds a PHP worker for its whole duration.
+    |
+    */
+
+    'response' => [
+        'max_delay_ms' => (int) env('CATCHHOOK_MAX_RESPONSE_DELAY_MS', 10_000),
+        'max_body_bytes' => 64 * 1024,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Replay
     |--------------------------------------------------------------------------
     |

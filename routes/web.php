@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BinController;
+use App\Http\Controllers\BinResponseController;
 use App\Http\Controllers\ClearBinRequestsController;
 use App\Http\Controllers\ReplayCapturedRequestController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,9 @@ Route::post('/bins', [BinController::class, 'store'])
 Route::get('/bins/{bin}', [BinController::class, 'show'])->name('bins.show');
 
 Route::delete('/bins/{bin}/requests', ClearBinRequestsController::class)->name('bins.requests.clear');
+
+Route::put('/bins/{bin}/response', [BinResponseController::class, 'update'])->name('bins.response.update');
+Route::delete('/bins/{bin}/response', [BinResponseController::class, 'destroy'])->name('bins.response.reset');
 
 Route::post('/requests/{capturedRequest}/replay', ReplayCapturedRequestController::class)
     ->middleware('throttle:replays')

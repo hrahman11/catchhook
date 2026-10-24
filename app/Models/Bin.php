@@ -15,6 +15,10 @@ use Illuminate\Support\Str;
  *
  * @property string $id
  * @property string|null $name
+ * @property int|null $response_status
+ * @property list<array{name: string, value: string}>|null $response_headers
+ * @property string|null $response_body
+ * @property int $response_delay_ms
  * @property Carbon $expires_at
  */
 class Bin extends Model
@@ -27,6 +31,10 @@ class Bin extends Model
     protected $fillable = [
         'name',
         'expires_at',
+        'response_status',
+        'response_headers',
+        'response_body',
+        'response_delay_ms',
     ];
 
     protected static function booted(): void
@@ -40,7 +48,28 @@ class Bin extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'response_status' => 'integer',
+            'response_headers' => 'array',
+            'response_delay_ms' => 'integer',
         ];
+    }
+
+    /**
+     * Whether the bin answers with a user-defined response instead of the default JSON acknowledgement.
+     */
+    public function hasCustomResponse(): bool
+    {
+        return $this->response_status !== null;
+    }
+
+    public function resetResponse(): void
+    {
+        $this->forceFill([
+            'response_status' => null,
+            'response_headers' => null,
+            'response_body' => null,
+            'response_delay_ms' => 0,
+        ])->save();
     }
 
     /**

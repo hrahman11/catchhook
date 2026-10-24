@@ -21,6 +21,12 @@ class BinResource extends JsonResource
             'name' => $this->name,
             'url' => route('hooks.capture', $this->resource),
             'expired' => $this->isExpired(),
+            'response' => $this->hasCustomResponse() ? [
+                'status' => $this->response_status,
+                'headers' => $this->response_headers ?? [],
+                'body' => $this->response_body,
+                'delay_ms' => $this->response_delay_ms,
+            ] : null,
             'expires_at' => $this->expires_at->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
         ];

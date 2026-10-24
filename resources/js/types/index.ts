@@ -3,8 +3,16 @@ export interface Bin {
     name: string | null;
     url: string;
     expired: boolean;
+    response: BinResponse | null;
     expires_at: string;
     created_at: string | null;
+}
+
+export interface BinResponse {
+    status: number;
+    headers: { name: string; value: string }[];
+    body: string | null;
+    delay_ms: number;
 }
 
 export interface CapturedRequestSummary {
