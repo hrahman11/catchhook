@@ -1,58 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Catchhook
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Inspect webhooks in real time.** Catchhook gives you a unique URL that captures every HTTP request sent to it. Requests appear in your browser the moment they arrive, and you can inspect, search, diff and replay them.
 
-## About Laravel
+Built with **Laravel 13**, **Vue 3 + TypeScript**, **Inertia**, **Laravel Reverb** (WebSockets) and **PostgreSQL**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Capture anything.** Any method, any sub-path, any content type. Bodies are stored byte-for-byte, binary payloads included.
+- **Live dashboard.** New requests stream in over WebSockets. If the connection drops, the dashboard re-syncs when it reconnects, so nothing is missed.
+- **Inspect.** Headers, query parameters, and bodies with JSON pretty-printing, form-field tables and hex dumps for binary data.
+- **Replay.** Re-send any request to another URL, as-is or with an edited method, headers or body, and see the target's response.
+- **Custom responses.** Choose the status, headers, body and an artificial delay the bin answers with, to test how senders handle errors, timeouts and retries.
+- **Search and diff.** Search paths, headers and bodies server-side, filter by method, and compare two requests side by side.
+- **Copy as code.** Reproduce any request as cURL, JavaScript `fetch` or Python `requests`.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Quick start
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+With Docker:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/hrahman11/catchhook.git
+cd catchhook
+docker compose up --build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Open <http://localhost:8000>, create a bin, then send it a request:
 
-## Contributing
+```bash
+curl -X POST "http://localhost:8000/h/<your-bin-id>/orders?source=cli" \
+  -H "Content-Type: application/json" \
+  -d '{"event":"order.paid","id":42}'
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+This starts the web server, the Reverb WebSocket server, a queue worker, the scheduler and PostgreSQL. To use another port, set `APP_PORT=8090`. Compose also reads a `.env` file next to `compose.yaml`, so values such as `APP_KEY` and `REVERB_APP_KEY` set there override the local-only defaults.
 
-## Code of Conduct
+<details>
+<summary>Without Docker</summary>
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Requires PHP 8.4, Composer, Node 24 and PostgreSQL.
 
-## Security Vulnerabilities
+```bash
+composer install && npm install
+cp .env.example .env && php artisan key:generate
+php artisan reverb:install   # generates REVERB_* credentials
+php artisan migrate
+composer dev                 # web server, Vite, Reverb and queue worker
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+</details>
+
+## Architecture
+
+```mermaid
+flowchart LR
+    S[Webhook sender] -->|ANY /h/:bin/*| C[Capture endpoint]
+    C -->|store| DB[(PostgreSQL)]
+    C -->|RequestCaptured event| Q[Queue]
+    Q -->|broadcast| R[Reverb WebSocket server]
+    R -->|bins.:id channel| D[Vue dashboard]
+    D -->|Inertia partial reloads| W[Laravel web routes]
+    W --> DB
+    D -->|replay| P[Replayer + SSRF guard] -->|HTTP| T[Target URL]
+```
+
+A captured request is stored, then broadcast through the queue, so the sender gets its response without waiting for the WebSocket server. The broadcast carries a short summary, and the dashboard fetches headers and body only when you open a request.
+
+## Design decisions
+
+**Capture routes run outside the `web` middleware group.** Senders never get sessions, cookies or CSRF checks. Rate limiting and the body-size check run _before_ the bin is loaded, so floods and requests to unknown bins never reach the database.
+
+**Bodies are stored losslessly.** Valid UTF-8 is stored as text, which keeps it readable and searchable. Anything else is base64-encoded, so binary payloads round-trip byte-for-byte. Bodies are read with `getContent()`, so Laravel's input trimming never touches them.
+
+**WebSockets via Reverb, not SSE.** Server-Sent Events would hold a PHP worker open for every connected dashboard. Reverb is an event-driven server built for long-lived connections, and Laravel's broadcasting gives a clean event-to-channel model.
+
+**Replay is protected against SSRF.** Replays are sent from the server, so targets must use http(s) and **every** DNS record must be a public address: no loopback, private ranges, link-local addresses (including cloud metadata at `169.254.169.254`) or IPv4-mapped IPv6. The connection is pinned to the validated IP to defeat DNS rebinding, and redirects are never followed. See [`TargetGuard`](app/Services/Replay/TargetGuard.php).
+
+**Custom responses can't attack the app.** A bin can return any HTML from the app's own origin. To keep that safe, every capture response is served with `Content-Security-Policy: sandbox` and `nosniff`, and `Set-Cookie` and security headers can't be overridden. See [`SecureHookResponse`](app/Http/Middleware/SecureHookResponse.php).
+
+**Numbers are never rounded.** `JSON.parse` rounds integers beyond 2^53, which corrupts large IDs. Pretty-printing re-indents the source text instead of re-serializing it, and code snippets embed bodies verbatim, so signed payloads still verify.
+
+**Search without a full-text index.** Bins keep their 500 most recent requests, so a case-insensitive substring scan over a single bin, found through the `bin_id` index, is fast and needs no extra infrastructure.
+
+**Diffs use Myers' algorithm,** the one behind `git diff`. JSON bodies are pretty-printed first, so changes line up field by field.
+
+## Quality
+
+|                 |                                                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| PHP tests       | Pest, run against PostgreSQL: `composer test`                                                                      |
+| Frontend tests  | Vitest: `npm test`                                                                                                 |
+| Static analysis | Larastan at **max level**, no baseline: `composer analyse`                                                         |
+| Code style      | Pint, ESLint and Prettier: `composer lint`, `npm run lint`, `npm run format:check`                                 |
+| CI              | GitHub Actions runs all of the above, plus type checking and a production build, against a real PostgreSQL service |
+
+## Configuration
+
+| Variable                                | Default | Description                                                                                |
+| --------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| `CATCHHOOK_BIN_TTL_DAYS`                | `7`     | How long a bin stays active before it's pruned                                             |
+| `CATCHHOOK_MAX_BODY_KB`                 | `512`   | Largest request body a bin accepts                                                         |
+| `CATCHHOOK_MAX_REQUESTS_PER_BIN`        | `500`   | Older requests are discarded beyond this                                                   |
+| `CATCHHOOK_CAPTURES_PER_MINUTE_PER_BIN` | `120`   | Rate limit per bin                                                                         |
+| `CATCHHOOK_CAPTURES_PER_MINUTE_PER_IP`  | `300`   | Rate limit per client across all bins                                                      |
+| `CATCHHOOK_MAX_RESPONSE_DELAY_MS`       | `10000` | Longest artificial delay for custom responses                                              |
+| `CATCHHOOK_REPLAY_TIMEOUT`              | `10`    | Replay timeout in seconds                                                                  |
+| `CATCHHOOK_REPLAY_ALLOW_PRIVATE`        | `false` | Allow replays to localhost and private networks. **Enable only on self-hosted instances.** |
+
+Expired bins are pruned hourly by the scheduler (`php artisan schedule:work`, or a cron entry running `schedule:run`).
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+[MIT](LICENSE)

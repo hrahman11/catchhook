@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "hrahman11/catchhook",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Capture, inspect and replay webhooks in real time.",
+    "keywords": ["webhooks", "laravel", "reverb", "inertia", "vue"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
