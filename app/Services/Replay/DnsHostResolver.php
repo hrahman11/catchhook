@@ -11,7 +11,7 @@ class DnsHostResolver implements HostResolver
         }
 
         $ipv4 = gethostbynamel($host) ?: [];
-        $ipv6 = array_column(@dns_get_record($host, DNS_AAAA) ?: [], 'ipv6');
+        $ipv6 = array_filter(array_column(@dns_get_record($host, DNS_AAAA) ?: [], 'ipv6'), 'is_string');
 
         return array_values(array_unique([...$ipv4, ...$ipv6]));
     }

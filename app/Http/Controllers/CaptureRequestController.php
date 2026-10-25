@@ -17,9 +17,10 @@ class CaptureRequestController extends Controller
 
         $captured = $capture->handle($bin, $request, $path);
 
-        return $bin->hasCustomResponse()
-            ? $this->customResponse($bin)
-            : $this->defaultResponse($captured);
+        // A configured status is what marks a bin as having a custom response.
+        return $bin->response_status === null
+            ? $this->defaultResponse($captured)
+            : $this->customResponse($bin, $bin->response_status);
     }
 
     private function defaultResponse(CapturedRequest $captured): Response
@@ -30,14 +31,14 @@ class CaptureRequestController extends Controller
         ]);
     }
 
-    private function customResponse(Bin $bin): Response
+    private function customResponse(Bin $bin, int $status): Response
     {
         // The request is already stored and broadcast, so the delay only affects the sender.
         if ($bin->response_delay_ms > 0) {
-            Sleep::for(min($bin->response_delay_ms, config('catchhook.response.max_delay_ms')))->milliseconds();
+            Sleep::for(min($bin->response_delay_ms, config()->integer('catchhook.response.max_delay_ms')))->milliseconds();
         }
 
-        $response = response($bin->response_body ?? '', $bin->response_status);
+        $response = response($bin->response_body ?? '', $status);
 
         foreach ($bin->response_headers ?? [] as ['name' => $name, 'value' => $value]) {
             $response->headers->set($name, $value, replace: false);

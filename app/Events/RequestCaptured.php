@@ -22,7 +22,7 @@ class RequestCaptured implements ShouldBroadcast
 
     public string $binId;
 
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     public array $request;
 
     public function __construct(CapturedRequest $request)

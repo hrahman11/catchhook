@@ -25,7 +25,19 @@ class ReplayRequest extends FormRequest
         ];
     }
 
+    public function targetUrl(): string
+    {
+        return $this->string('target_url')->toString();
+    }
+
+    public function replayMethod(): ?string
+    {
+        return $this->filled('method') ? $this->string('method')->toString() : null;
+    }
+
     /**
+     * The edited headers, or null to re-send the original ones.
+     *
      * @return list<array{name: string, value: string}>|null
      */
     public function replayHeaders(): ?array
@@ -34,14 +46,17 @@ class ReplayRequest extends FormRequest
             return null;
         }
 
-        return array_map(fn (array $header) => [
-            'name' => $header['name'],
-            'value' => (string) ($header['value'] ?? ''),
-        ], array_values($this->validated('headers') ?? []));
+        return array_map(fn (int|string $index) => [
+            'name' => $this->string("headers.{$index}.name")->toString(),
+            'value' => $this->string("headers.{$index}.value")->toString(),
+        ], array_keys($this->array('headers')));
     }
 
+    /**
+     * The edited body, or null to re-send the original bytes.
+     */
     public function replayBody(): ?string
     {
-        return $this->has('body') ? (string) $this->validated('body') : null;
+        return $this->has('body') ? $this->string('body')->toString() : null;
     }
 }

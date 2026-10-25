@@ -30,22 +30,21 @@ class BinController extends Controller
 
     public function show(Request $request, Bin $bin): Response
     {
-        $filters = $request->validate([
+        $request->validate([
             'q' => ['nullable', 'string', 'max:200'],
             'method' => ['nullable', 'string', 'in:'.implode(',', ReplayRequest::METHODS)],
         ]);
 
-        $filtered = fn (): HasMany => $bin->requests()
-            ->search($filters['q'] ?? null)
-            ->withMethod($filters['method'] ?? null);
+        $search = $request->string('q')->trim()->toString();
+        $method = $request->filled('method') ? $request->string('method')->toString() : null;
+        $isFiltering = $search !== '' || $method !== null;
+
+        $filtered = fn (): HasMany => $bin->requests()->search($search)->withMethod($method);
 
         // Props are closures so partial reloads (e.g. selecting a request) only run the queries they need.
         return Inertia::render('Bins/Show', [
             'bin' => fn () => new BinResource($bin),
-            'filters' => fn () => [
-                'q' => $filters['q'] ?? '',
-                'method' => $filters['method'] ?? null,
-            ],
+            'filters' => fn () => ['q' => $search, 'method' => $method],
             'requests' => fn () => CapturedRequestSummaryResource::collection(
                 $filtered()
                     ->select(['id', 'bin_id', 'method', 'path', 'query_string', 'content_type', 'size', 'ip', 'created_at'])
@@ -54,7 +53,7 @@ class BinController extends Controller
                     ->get()
             ),
             'total' => fn () => $bin->requests()->count(),
-            'matches' => fn () => array_filter($filters) ? $filtered()->count() : null,
+            'matches' => fn () => $isFiltering ? $filtered()->count() : null,
             // Without an explicit selection, open the newest request.
             'selected' => fn () => $this->resource($request->has('r')
                 ? $this->findRequest($bin, $request->query('r'))

@@ -23,8 +23,8 @@ class UpdateBinResponseRequest extends FormRequest
                 Rule::notIn(SecureHookResponse::RESERVED_HEADERS),
             ],
             'headers.*.value' => ['present', 'nullable', 'string', 'max:4096', 'not_regex:/[\r\n]/'],
-            'body' => ['nullable', 'string', 'max:'.config('catchhook.response.max_body_bytes')],
-            'delay_ms' => ['required', 'integer', 'min:0', 'max:'.config('catchhook.response.max_delay_ms')],
+            'body' => ['nullable', 'string', 'max:'.config()->integer('catchhook.response.max_body_bytes')],
+            'delay_ms' => ['required', 'integer', 'min:0', 'max:'.config()->integer('catchhook.response.max_delay_ms')],
         ];
     }
 
@@ -58,14 +58,16 @@ class UpdateBinResponseRequest extends FormRequest
      */
     public function toAttributes(): array
     {
+        $body = $this->input('body');
+
         return [
-            'response_status' => (int) $this->validated('status'),
-            'response_headers' => array_map(fn (array $header) => [
-                'name' => $header['name'],
-                'value' => (string) ($header['value'] ?? ''),
-            ], array_values($this->validated('headers'))),
-            'response_body' => $this->validated('body'),
-            'response_delay_ms' => (int) $this->validated('delay_ms'),
+            'response_status' => $this->integer('status'),
+            'response_headers' => array_map(fn (int|string $index) => [
+                'name' => $this->string("headers.{$index}.name")->toString(),
+                'value' => $this->string("headers.{$index}.value")->toString(),
+            ], array_keys($this->array('headers'))),
+            'response_body' => is_string($body) ? $body : null,
+            'response_delay_ms' => $this->integer('delay_ms'),
         ];
     }
 }

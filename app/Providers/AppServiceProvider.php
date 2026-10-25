@@ -26,14 +26,14 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(TargetGuard::class, fn (Application $app) => new TargetGuard(
             $app->make(HostResolver::class),
-            (bool) config('catchhook.replay.allow_private_targets'),
+            config()->boolean('catchhook.replay.allow_private_targets'),
         ));
 
         $this->app->bind(Replayer::class, fn (Application $app) => new Replayer(
             $app->make(Http::class),
             $app->make(TargetGuard::class),
-            (int) config('catchhook.replay.timeout'),
-            (int) config('catchhook.replay.max_response_bytes'),
+            config()->integer('catchhook.replay.timeout'),
+            config()->integer('catchhook.replay.max_response_bytes'),
         ));
     }
 
@@ -53,8 +53,8 @@ class AppServiceProvider extends ServiceProvider
             $binId = $bin instanceof Bin ? $bin->id : (string) $bin;
 
             return [
-                Limit::perMinute(config('catchhook.limits.captures_per_minute_per_bin'))->by("bin:{$binId}"),
-                Limit::perMinute(config('catchhook.limits.captures_per_minute_per_ip'))->by("ip:{$request->ip()}"),
+                Limit::perMinute(config()->integer('catchhook.limits.captures_per_minute_per_bin'))->by("bin:{$binId}"),
+                Limit::perMinute(config()->integer('catchhook.limits.captures_per_minute_per_ip'))->by("ip:{$request->ip()}"),
             ];
         });
     }

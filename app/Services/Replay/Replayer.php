@@ -62,10 +62,17 @@ class Replayer
             return ReplayResult::failed($e->getMessage(), self::elapsed($started));
         }
 
+        // PSR-7 guarantees header values are lists of strings.
+        $headers = [];
+
+        foreach ($response->toPsrResponse()->getHeaders() as $name => $values) {
+            $headers[(string) $name] = array_values($values);
+        }
+
         return ReplayResult::received(
             status: $response->status(),
             reason: $response->reason(),
-            headers: $response->headers(),
+            headers: $headers,
             body: $response->body(),
             durationMs: self::elapsed($started),
             maxBytes: $this->maxResponseBytes,

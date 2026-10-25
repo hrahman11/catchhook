@@ -29,9 +29,11 @@ class SecureHookResponse
         'x-content-type-options',
     ];
 
+    /**
+     * @param  Closure(Request): Response  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        /** @var Response $response */
         $response = $next($request);
 
         $response->headers->remove('Set-Cookie');

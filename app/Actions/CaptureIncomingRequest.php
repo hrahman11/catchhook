@@ -28,7 +28,7 @@ class CaptureIncomingRequest
         $captured->setRawBody($request->getContent());
 
         $bin->requests()->save($captured);
-        $bin->discardRequestsBeyond(config('catchhook.limits.max_requests_per_bin'));
+        $bin->discardRequestsBeyond(config()->integer('catchhook.limits.max_requests_per_bin'));
 
         RequestCaptured::dispatch($captured);
 

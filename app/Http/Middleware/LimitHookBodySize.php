@@ -11,9 +11,12 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LimitHookBodySize
 {
+    /**
+     * @param  Closure(Request): Response  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        $max = config('catchhook.limits.max_body_kb') * 1024;
+        $max = config()->integer('catchhook.limits.max_body_kb') * 1024;
 
         // Check the declared length first so oversized uploads are refused
         // without reading them, then the actual body for chunked requests.

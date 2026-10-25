@@ -16,8 +16,8 @@ class ReplayCapturedRequestController extends Controller
         try {
             $result = $replayer->replay(
                 $capturedRequest,
-                url: $request->validated('target_url'),
-                method: $request->validated('method'),
+                url: $request->targetUrl(),
+                method: $request->replayMethod(),
                 headers: $request->replayHeaders(),
                 body: $request->replayBody(),
             );

@@ -42,7 +42,7 @@ class Bin extends Model
     protected static function booted(): void
     {
         static::creating(function (Bin $bin) {
-            $bin->expires_at ??= now()->addDays(config('catchhook.bin_ttl_days'));
+            $bin->expires_at ??= now()->addDays(config()->integer('catchhook.bin_ttl_days'));
         });
     }
 
@@ -91,7 +91,8 @@ class Bin extends Model
         // request past the limit is older than the ones being kept.
         $cutoff = $this->requests()->newestFirst()->skip($keep)->value('id');
 
-        return $cutoff === null ? 0 : $this->requests()->where('id', '<=', $cutoff)->delete();
+        // A bulk delete on the base query: no model events are needed here.
+        return $cutoff === null ? 0 : $this->requests()->toBase()->where('id', '<=', $cutoff)->delete();
     }
 
     /**
