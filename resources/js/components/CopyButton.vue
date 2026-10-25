@@ -23,7 +23,15 @@ async function copy() {
         class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-700 hover:text-zinc-100"
         @click="copy"
     >
-        <svg v-if="copied" viewBox="0 0 24 24" class="size-3.5 text-brand-400" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <svg
+            v-if="copied"
+            viewBox="0 0 24 24"
+            class="size-3.5 text-brand-400"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            aria-hidden="true"
+        >
             <path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <svg v-else viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

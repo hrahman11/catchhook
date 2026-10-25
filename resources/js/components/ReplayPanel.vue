@@ -110,7 +110,9 @@ function storeTarget(value: string) {
 
             <HeaderEditor v-model="headers">
                 <template #hint>
-                    <p class="mt-2 text-[11px] text-zinc-500">Host and Content-Length are set automatically. An <code class="font-mono">X-Catchhook-Replay</code> header is added.</p>
+                    <p class="mt-2 text-[11px] text-zinc-500">
+                        Host and Content-Length are set automatically. An <code class="font-mono">X-Catchhook-Replay</code> header is added.
+                    </p>
                 </template>
             </HeaderEditor>
 

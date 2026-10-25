@@ -24,9 +24,10 @@ const current = props.bin.response;
 
 const form = useForm({
     status: current?.status ?? 200,
-    headers: (current?.headers ?? [{ name: 'content-type', value: 'application/json' }]).map(
-        (header): EditableHeader => ({ enabled: true, ...header }),
-    ),
+    headers: (current?.headers ?? [{ name: 'content-type', value: 'application/json' }]).map((header): EditableHeader => ({
+        enabled: true,
+        ...header,
+    })),
     body: current?.body ?? '{"ok":true}',
     delay_ms: current?.delay_ms ?? 0,
 });
@@ -74,7 +75,11 @@ function reset() {
                             v-for="preset in presets"
                             :key="preset.status"
                             type="button"
-                            :class="form.status === preset.status ? 'border-brand-500 bg-brand-500/15 text-brand-200' : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'"
+                            :class="
+                                form.status === preset.status
+                                    ? 'border-brand-500 bg-brand-500/15 text-brand-200'
+                                    : 'border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                            "
                             class="rounded-md border px-2 py-1 text-xs"
                             @click="form.status = preset.status"
                         >
@@ -105,11 +110,22 @@ function reset() {
                 </div>
 
                 <div>
-                    <label for="response-delay" class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wider text-zinc-400 uppercase">
+                    <label
+                        for="response-delay"
+                        class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wider text-zinc-400 uppercase"
+                    >
                         Delay
                         <span class="font-mono font-normal tracking-normal text-zinc-300">{{ (form.delay_ms / 1000).toFixed(1) }}s</span>
                     </label>
-                    <input id="response-delay" v-model.number="form.delay_ms" type="range" min="0" :max="MAX_DELAY_MS" step="100" class="w-full accent-brand-500" />
+                    <input
+                        id="response-delay"
+                        v-model.number="form.delay_ms"
+                        type="range"
+                        min="0"
+                        :max="MAX_DELAY_MS"
+                        step="100"
+                        class="w-full accent-brand-500"
+                    />
                     <p class="mt-1 text-[11px] text-zinc-500">Wait before responding, to test how the sender handles slow endpoints and timeouts.</p>
                     <p v-if="form.errors.delay_ms" class="mt-1 text-xs text-rose-300">{{ form.errors.delay_ms }}</p>
                 </div>

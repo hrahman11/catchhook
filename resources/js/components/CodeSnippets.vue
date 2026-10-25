@@ -32,6 +32,8 @@ const code = computed(() => buildSnippet(language.value, snippetInput(props.requ
                 <CopyButton :value="code" />
             </div>
         </div>
-        <pre class="max-h-80 overflow-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 font-mono text-xs leading-relaxed text-zinc-200"><code>{{ code }}</code></pre>
+        <pre
+            class="max-h-80 overflow-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-3 font-mono text-xs leading-relaxed text-zinc-200"
+        ><code>{{ code }}</code></pre>
     </section>
 </template>

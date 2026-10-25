@@ -4,7 +4,9 @@ import { computed } from 'vue';
 
 const props = defineProps<{ url: string }>();
 
-const example = computed(() => `curl -X POST "${props.url}/demo?source=cli" \\\n  -H "Content-Type: application/json" \\\n  -d '{"event":"user.created","id":42}'`);
+const example = computed(
+    () => `curl -X POST "${props.url}/demo?source=cli" \\\n  -H "Content-Type: application/json" \\\n  -d '{"event":"user.created","id":42}'`,
+);
 </script>
 
 <template>

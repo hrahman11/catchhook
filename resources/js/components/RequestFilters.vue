@@ -30,7 +30,14 @@ function toggleMethod(method: string) {
     <div class="space-y-2 border-b border-zinc-800 px-4 py-3">
         <label class="relative block">
             <span class="sr-only">Search requests</span>
-            <svg viewBox="0 0 24 24" class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-zinc-500" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg
+                viewBox="0 0 24 24"
+                class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-zinc-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
                 <circle cx="11" cy="11" r="7" />
                 <path d="m20 20-3.5-3.5" stroke-linecap="round" />
             </svg>
@@ -47,7 +54,11 @@ function toggleMethod(method: string) {
                 :key="option"
                 type="button"
                 :aria-pressed="method === option"
-                :class="method === option ? 'border-brand-500 bg-brand-500/15 text-brand-200' : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'"
+                :class="
+                    method === option
+                        ? 'border-brand-500 bg-brand-500/15 text-brand-200'
+                        : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'
+                "
                 class="rounded border px-1.5 py-0.5 font-mono text-[10px]"
                 @click="toggleMethod(option)"
             >

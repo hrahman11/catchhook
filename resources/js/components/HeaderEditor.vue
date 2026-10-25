@@ -27,7 +27,9 @@ withDefaults(defineProps<{ errors?: Record<string, string | undefined>; max?: nu
             </button>
         </legend>
 
-        <p v-if="headers.length === 0" class="rounded-lg border border-dashed border-zinc-800 px-3 py-3 text-center text-xs text-zinc-500">No headers.</p>
+        <p v-if="headers.length === 0" class="rounded-lg border border-dashed border-zinc-800 px-3 py-3 text-center text-xs text-zinc-500">
+            No headers.
+        </p>
 
         <div class="space-y-1.5">
             <div v-for="(header, index) in headers" :key="index">

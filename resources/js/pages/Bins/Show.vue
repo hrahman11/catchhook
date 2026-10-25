@@ -38,7 +38,11 @@ const pickingCompare = ref(false);
 
 const isFiltering = computed(() => props.matches !== null);
 
-const { requests: liveRequests, total: liveTotal, freshIds } = useLiveRequests({
+const {
+    requests: liveRequests,
+    total: liveTotal,
+    freshIds,
+} = useLiveRequests({
     binId: props.bin.id,
     initial: () => props.requests,
     initialTotal: () => props.total,
@@ -146,7 +150,9 @@ function clearAll() {
                         >
                             {{ bin.response ? bin.response.status : 'default' }}
                         </span>
-                        <span v-if="bin.response?.delay_ms" class="font-mono text-[10px] text-zinc-500">+{{ (bin.response.delay_ms / 1000).toFixed(1) }}s</span>
+                        <span v-if="bin.response?.delay_ms" class="font-mono text-[10px] text-zinc-500"
+                            >+{{ (bin.response.delay_ms / 1000).toFixed(1) }}s</span
+                        >
                     </button>
                     <button
                         type="button"
@@ -168,7 +174,10 @@ function clearAll() {
             <aside class="flex max-h-96 shrink-0 flex-col border-b border-zinc-800 md:max-h-none md:w-96 md:border-r md:border-b-0">
                 <RequestFilters :q="filters.q" :method="filters.method" @change="filter" />
 
-                <div v-if="pickingCompare" class="flex items-center justify-between gap-2 border-b border-brand-500/30 bg-brand-500/10 px-4 py-2 text-xs text-brand-200">
+                <div
+                    v-if="pickingCompare"
+                    class="flex items-center justify-between gap-2 border-b border-brand-500/30 bg-brand-500/10 px-4 py-2 text-xs text-brand-200"
+                >
                     Pick a request to compare with A
                     <button type="button" class="text-brand-300 underline-offset-2 hover:underline" @click="pickingCompare = false">Cancel</button>
                 </div>
@@ -195,7 +204,13 @@ function clearAll() {
             </aside>
 
             <main class="min-w-0 flex-1 overflow-y-auto p-6">
-                <RequestDiff v-if="selected && compare" :left="selected" :right="compare" @swap="swapCompared" @close="visit({ c: null }, ['compare'])" />
+                <RequestDiff
+                    v-if="selected && compare"
+                    :left="selected"
+                    :right="compare"
+                    @swap="swapCompared"
+                    @close="visit({ c: null }, ['compare'])"
+                />
                 <RequestDetail v-else-if="selected" :request="selected" :bin-url="bin.url" @compare="pickingCompare = true" />
                 <p v-else class="py-16 text-center text-sm text-zinc-500">Select a request to inspect it.</p>
             </main>

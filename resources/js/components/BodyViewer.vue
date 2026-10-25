@@ -36,7 +36,9 @@ const formFields = computed(() => (format.value === 'form' ? parseQuery(raw.valu
         <div class="mb-2 flex items-center justify-between gap-2">
             <h3 class="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
                 Body
-                <span class="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-normal text-zinc-400 normal-case">{{ format }}</span>
+                <span class="ml-1 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-normal text-zinc-400 normal-case">{{
+                    format
+                }}</span>
             </h3>
 
             <div v-if="format !== 'empty'" class="flex items-center gap-2">

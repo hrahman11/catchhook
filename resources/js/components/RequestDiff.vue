@@ -69,7 +69,13 @@ const statusStyles = {
                     <span class="truncate font-mono text-zinc-300">{{ left.path }}</span>
                     <time class="text-zinc-500" :datetime="left.created_at">{{ formatDateTime(left.created_at) }}</time>
                 </span>
-                <button type="button" class="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100" title="Swap A and B" aria-label="Swap A and B" @click="emit('swap')">
+                <button
+                    type="button"
+                    class="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                    title="Swap A and B"
+                    aria-label="Swap A and B"
+                    @click="emit('swap')"
+                >
                     ⇄
                 </button>
                 <span class="flex min-w-0 items-center gap-1.5 rounded-md border border-zinc-800 px-2 py-1">
@@ -79,7 +85,11 @@ const statusStyles = {
                     <time class="text-zinc-500" :datetime="right.created_at">{{ formatDateTime(right.created_at) }}</time>
                 </span>
             </div>
-            <button type="button" class="rounded-md border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-800" @click="emit('close')">
+            <button
+                type="button"
+                class="rounded-md border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+                @click="emit('close')"
+            >
                 Exit compare
             </button>
         </header>
@@ -134,11 +144,16 @@ const statusStyles = {
         <section>
             <h3 class="mb-2 text-xs font-semibold tracking-wider text-zinc-400 uppercase">Body</h3>
 
-            <p v-if="body.kind === 'identical'" class="rounded-lg border border-dashed border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500">The bodies are identical.</p>
+            <p v-if="body.kind === 'identical'" class="rounded-lg border border-dashed border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500">
+                The bodies are identical.
+            </p>
             <p v-else-if="body.kind === 'binary'" class="rounded-lg border border-dashed border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500">
                 Binary bodies are {{ body.identical ? 'identical' : 'different' }}.
             </p>
-            <p v-else-if="body.kind === 'too-large'" class="rounded-lg border border-dashed border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500">
+            <p
+                v-else-if="body.kind === 'too-large'"
+                class="rounded-lg border border-dashed border-zinc-800 px-3 py-4 text-center text-xs text-zinc-500"
+            >
                 The bodies are too different to show a line-by-line diff.
             </p>
             <div v-else class="max-h-[32rem] overflow-auto rounded-lg border border-zinc-800 bg-zinc-900/60 py-2 font-mono text-xs leading-relaxed">
@@ -155,7 +170,9 @@ const statusStyles = {
                         }"
                         class="flex px-3 whitespace-pre-wrap"
                     >
-                        <span class="w-4 shrink-0 select-none" aria-hidden="true">{{ line.type === 'delete' ? '−' : line.type === 'insert' ? '+' : ' ' }}</span>
+                        <span class="w-4 shrink-0 select-none" aria-hidden="true">{{
+                            line.type === 'delete' ? '−' : line.type === 'insert' ? '+' : ' '
+                        }}</span>
                         <span class="sr-only">{{ line.type === 'delete' ? 'Only in A:' : line.type === 'insert' ? 'Only in B:' : '' }}</span>
                         <span class="min-w-0 break-all">{{ line.text }}</span>
                     </div>

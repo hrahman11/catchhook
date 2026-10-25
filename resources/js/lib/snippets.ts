@@ -84,7 +84,14 @@ export function toFetch({ method, url, headers, body, isBinary }: SnippetInput):
 }
 
 export function toPython({ method, url, headers, body, isBinary }: SnippetInput): string {
-    const lines = [...(body && isBinary ? ['import base64'] : []), 'import requests', '', 'response = requests.request(', `    ${str(method)},`, `    ${str(url)},`];
+    const lines = [
+        ...(body && isBinary ? ['import base64'] : []),
+        'import requests',
+        '',
+        'response = requests.request(',
+        `    ${str(method)},`,
+        `    ${str(url)},`,
+    ];
 
     if (headers.length) {
         lines.push('    headers={');

@@ -25,9 +25,7 @@ const features = [
                 No sign-up. Your URL is ready in one click.
             </p>
 
-            <h1 class="mt-6 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-50 sm:text-6xl">
-                See exactly what your webhooks send.
-            </h1>
+            <h1 class="mt-6 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-50 sm:text-6xl">See exactly what your webhooks send.</h1>
             <p class="mt-6 max-w-2xl text-lg text-zinc-400">
                 Catchhook gives you a unique URL that captures every HTTP request sent to it, so you can inspect headers and payloads and debug
                 integrations in seconds.
