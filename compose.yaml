@@ -1,0 +1,110 @@
+# Run Catchhook locally with: docker compose up --build
+# Then open http://localhost:8000
+#
+# The defaults below are for local use only. Set your own APP_KEY and
+# REVERB_* secrets (e.g. in a .env file next to this one) before exposing it.
+
+x-app-env: &app-env
+  APP_NAME: Catchhook
+  APP_KEY: ${APP_KEY:-base64:Y2F0Y2hob29rLWxvY2FsLWRldmVsb3BtZW50LWtleSE=}
+  APP_URL: ${APP_URL:-http://localhost:8000}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: catchhook
+  DB_USERNAME: catchhook
+  DB_PASSWORD: ${DB_PASSWORD:-catchhook}
+  BROADCAST_CONNECTION: reverb
+  QUEUE_CONNECTION: database
+  CACHE_STORE: database
+  SESSION_DRIVER: database
+  # How the app reaches Reverb inside the Docker network.
+  REVERB_APP_ID: ${REVERB_APP_ID:-catchhook}
+  REVERB_APP_KEY: ${REVERB_APP_KEY:-catchhook-key}
+  REVERB_APP_SECRET: ${REVERB_APP_SECRET:-catchhook-secret}
+  REVERB_HOST: reverb
+  REVERB_PORT: 8080
+  REVERB_SCHEME: http
+  REVERB_SERVER_HOST: 0.0.0.0
+  REVERB_SERVER_PORT: 8080
+
+x-app: &app
+  image: catchhook:local
+  environment: *app-env
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *app
+    build:
+      context: .
+      args:
+        # How the browser reaches Reverb from the host machine.
+        VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-catchhook-key}
+        VITE_REVERB_HOST: localhost
+        VITE_REVERB_PORT: 8080
+        VITE_REVERB_SCHEME: http
+    environment:
+      <<: *app-env
+      RUN_MIGRATIONS: 'true'
+    ports:
+      - '${APP_PORT:-8000}:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'php', '-r', "exit(@file_get_contents('http://localhost:8000/up') === false ? 1 : 0);"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  reverb:
+    <<: *app
+    command: ['php', 'artisan', 'reverb:start']
+    ports:
+      - '8080:8080'
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'php', '-r', "exit(@fsockopen('127.0.0.1', 8080) ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Workers have no port to probe, so the base image's web health check is disabled.
+  queue:
+    <<: *app
+    command: ['php', 'artisan', 'queue:work', '--tries=3']
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  scheduler:
+    <<: *app
+    command: ['php', 'artisan', 'schedule:work']
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: catchhook
+      POSTGRES_USER: catchhook
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-catchhook}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U catchhook -d catchhook']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
